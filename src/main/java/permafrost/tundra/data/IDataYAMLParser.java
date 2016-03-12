@@ -43,6 +43,7 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
+import javax.activation.MimeTypeParseException;
 
 /**
  * Deserializes and serializes IData objects from and to YAML.
@@ -56,6 +57,15 @@ public class IDataYAMLParser extends IDataTextParser {
          * The singleton instance of the class.
          */
         private static final IDataYAMLParser INSTANCE = new IDataYAMLParser();
+    }
+
+    static {
+        try {
+            IDataTextParsers.registerFileExtensions(Holder.INSTANCE, "yaml", "yml");
+            IDataTextParsers.registerMimeTypes(Holder.INSTANCE, Holder.INSTANCE.getContentType());
+        } catch(MimeTypeParseException ex) {
+            // do nothing
+        }
     }
 
     /**
