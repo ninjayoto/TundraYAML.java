@@ -59,15 +59,6 @@ public class IDataYAMLParser extends IDataTextParser {
         private static final IDataYAMLParser INSTANCE = new IDataYAMLParser();
     }
 
-    static {
-        try {
-            IDataTextParsers.registerFileExtensions(Holder.INSTANCE, "yaml", "yml");
-            IDataTextParsers.registerMimeTypes(Holder.INSTANCE, Holder.INSTANCE.getContentType());
-        } catch(MimeTypeParseException ex) {
-            // do nothing
-        }
-    }
-
     /**
      * Disallow instantiation of this class.
      */
