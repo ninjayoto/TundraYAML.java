@@ -33,7 +33,8 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.error.YAMLException;
 import org.yaml.snakeyaml.nodes.Node;
 import org.yaml.snakeyaml.representer.Represent;
-import permafrost.tundra.io.StreamHelper;
+import permafrost.tundra.io.InputOutputHelper;
+import permafrost.tundra.io.InputStreamHelper;
 import permafrost.tundra.lang.BytesHelper;
 import permafrost.tundra.lang.StringHelper;
 import java.io.ByteArrayInputStream;
@@ -82,7 +83,7 @@ public class IDataYAMLParser extends IDataTextParser {
      * @throws IOException If there is a problem writing to the stream.
      */
     public void encode(OutputStream outputStream, IData document, Charset charset) throws IOException {
-        StreamHelper.copy(StreamHelper.normalize(encodeToString(document), charset), outputStream);
+        InputOutputHelper.copy(InputStreamHelper.normalize(encodeToString(document), charset), outputStream);
     }
 
     /**
