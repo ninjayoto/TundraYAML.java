@@ -21,7 +21,7 @@ required to be included on the project's classpath:
 It is also dependent on the following open source libraries, which
 are required to be included on the project's classpath:
 
-* `snakeyaml-1.15.jar` - http://www.snakeyaml.org
+* `snakeyaml-1.18.jar` - http://www.snakeyaml.org
 * `Tundra.jar` - https://github.com/Permafrost/Tundra.java
 
 [JUnit] 4 is required for the unit tests in the project. The

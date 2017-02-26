@@ -48,6 +48,34 @@ public class IDataYAMLParserTest {
     }
 
     @Test
+    public void testDecodeIDataListFromString() throws Exception {
+        String yaml = "[{'a':1},{'a':'2'}]";
+
+        IData document = IDataYAMLParser.getInstance().decodeFromString(yaml);
+        assertEquals(1, IDataHelper.get(document, "recordWithNoID[0]/a"));
+        assertEquals("2", IDataHelper.get(document, "recordWithNoID[1]/a"));
+    }
+
+    @Test
+    public void testDecodeListFromString() throws Exception {
+        String yaml = "[1, 2, 3]";
+
+        IData document = IDataYAMLParser.getInstance().decodeFromString(yaml);
+        assertEquals(3, ((Object[])IDataHelper.get(document, "recordWithNoID")).length);
+        assertEquals(1, IDataHelper.get(document, "recordWithNoID[0]"));
+        assertEquals(2, IDataHelper.get(document, "recordWithNoID[1]"));
+        assertEquals(3, IDataHelper.get(document, "recordWithNoID[2]"));
+    }
+
+    @Test
+    public void testDecodeIntegerFromString() throws Exception {
+        String yaml = "1";
+
+        IData document = IDataYAMLParser.getInstance().decodeFromString(yaml);
+        assertEquals(1, IDataHelper.get(document, "recordWithNoID"));
+    }
+
+    @Test
     public void testEncodeToString() throws Exception {
         String content = "this is a test";
         InputStream inputStream = new ByteArrayInputStream(content.getBytes());

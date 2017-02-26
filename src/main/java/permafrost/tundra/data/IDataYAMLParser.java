@@ -35,6 +35,7 @@ import org.yaml.snakeyaml.nodes.Node;
 import org.yaml.snakeyaml.representer.Represent;
 import permafrost.tundra.io.InputOutputHelper;
 import permafrost.tundra.io.InputStreamHelper;
+import permafrost.tundra.lang.ArrayHelper;
 import permafrost.tundra.lang.BytesHelper;
 import permafrost.tundra.lang.StringHelper;
 import java.io.ByteArrayInputStream;
@@ -42,9 +43,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import javax.activation.MimeTypeParseException;
 
 /**
  * Deserializes and serializes IData objects from and to YAML.
@@ -89,10 +91,10 @@ public class IDataYAMLParser extends IDataTextParser {
     /**
      * Returns an IData representation of the YAML data read from the given input stream.
      *
-     * @param inputStream The input stream to be decoded.
-     * @param charset     The character set to use.
-     * @return An IData representation of the given input stream data.
-     * @throws IOException If there is a problem reading from the stream.
+     * @param inputStream   The input stream to be decoded.
+     * @param charset       The character set to use.
+     * @return              An IData representation of the given input stream data.
+     * @throws IOException  If there is a problem reading from the stream.
      */
     public IData decode(InputStream inputStream, Charset charset) throws IOException {
         return decodeFromString(StringHelper.normalize(inputStream, charset));
@@ -110,24 +112,22 @@ public class IDataYAMLParser extends IDataTextParser {
     /**
      * Returns an IData representation of the YAML data.
      *
-     * @param string The String to be decoded.
-     * @return An IData representation of the given data.
-     * @throws IOException If an I/O problem occurs.
+     * @param content       The String to be decoded.
+     * @return              An IData representation of the given data.
+     * @throws IOException  If an I/O problem occurs.
      */
     @Override
-    public IData decodeFromString(String string) throws IOException {
-        Yaml yaml = new Yaml();
-        Object object = yaml.load(string);
+    public IData decodeFromString(String content) throws IOException {
+        Object value = normalize(new Yaml().load(content));
 
-        IData output = null;
+        IData output;
 
-        if (object instanceof Map) {
-            output = IDataHelper.toIData((Map)object);
-        } else if (object instanceof List) {
-            IData[] array = IDataHelper.toIDataArray((List)object);
+        if (value instanceof IData) {
+            output = (IData)value;
+        } else {
             output = IDataFactory.create();
             IDataCursor cursor = output.getCursor();
-            IDataUtil.put(cursor, "recordWithNoID", array);
+            IDataUtil.put(cursor, "recordWithNoID", value);
             cursor.destroy();
         }
 
@@ -135,30 +135,56 @@ public class IDataYAMLParser extends IDataTextParser {
     }
 
     /**
+     * Converts a parsed value to an IData compatible representation.
+     *
+     * @param value The value to be converted.
+     * @return      The converted value.
+     */
+    private Object normalize(Object value) {
+        if (value instanceof Map) {
+            value = IDataHelper.toIData((Map)value);
+        } else if (value instanceof List) {
+            List input = (List)value;
+            List<Object> output = new ArrayList<Object>(input.size());
+
+            for (Object item : input) {
+                output.add(normalize(item));
+            }
+
+            value = ArrayHelper.normalize(output);
+        }
+        return value;
+    }
+
+    /**
      * Returns a YAML representation of the given IData object.
      *
      * @param input The IData to convert to YAML.
-     * @return The YAML representation of the IData.
+     * @return      The YAML representation of the IData.
      */
     @Override
     public String encodeToString(IData input) throws IOException {
         DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
 
-        Yaml yaml = new Yaml(new Representer(), options);
+        Yaml parser = new Yaml(new Representer(), options);
 
         IDataCursor cursor = input.getCursor();
-        IData[] array = IDataUtil.getIDataArray(cursor, "recordWithNoID");
+        Object value = IDataUtil.get(cursor, "recordWithNoID");
         cursor.destroy();
 
-        Object object = null;
-        if (array != null) {
-            object = IDataHelper.toList(array);
+        Object object;
+        if (value instanceof IData[]) {
+            object = IDataHelper.toList((IData[])value);
+        } else if (value instanceof Object[]) {
+            object = Arrays.asList((Object[])value);
+        } else if (value != null) {
+            object = value;
         } else {
             object = IDataHelper.toMap(input);
         }
 
-        return yaml.dump(object);
+        return parser.dump(object);
     }
 
     /**
@@ -201,7 +227,7 @@ public class IDataYAMLParser extends IDataTextParser {
              * @param data The Object to be converted to a YAML node.
              */
             public Node representData(Object data) {
-                Node node = null;
+                Node node;
                 try {
                     node = super.representData(data);
                 } catch (YAMLException ex) {
