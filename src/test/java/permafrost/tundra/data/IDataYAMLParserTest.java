@@ -39,7 +39,7 @@ public class IDataYAMLParserTest {
     public void testDecodeFromString() throws Exception {
         String yaml = "abc: '123'\ndef: '456'\nghi: '789'";
 
-        IData document = IDataYAMLParser.getInstance().decodeFromString(yaml);
+        IData document = new IDataYAMLParser().parse(yaml);
         IDataCursor cursor = document.getCursor();
         assertEquals("123", IDataUtil.getString(cursor, "abc"));
         assertEquals("456", IDataUtil.getString(cursor, "def"));
@@ -51,7 +51,7 @@ public class IDataYAMLParserTest {
     public void testDecodeIDataListFromString() throws Exception {
         String yaml = "[{'a':1},{'a':'2'}]";
 
-        IData document = IDataYAMLParser.getInstance().decodeFromString(yaml);
+        IData document = new IDataYAMLParser().parse(yaml);
         assertEquals(1, IDataHelper.get(document, "recordWithNoID[0]/a"));
         assertEquals("2", IDataHelper.get(document, "recordWithNoID[1]/a"));
     }
@@ -60,7 +60,7 @@ public class IDataYAMLParserTest {
     public void testDecodeListFromString() throws Exception {
         String yaml = "[1, 2, 3]";
 
-        IData document = IDataYAMLParser.getInstance().decodeFromString(yaml);
+        IData document = new IDataYAMLParser().parse(yaml);
         assertEquals(3, ((Object[])IDataHelper.get(document, "recordWithNoID")).length);
         assertEquals(1, IDataHelper.get(document, "recordWithNoID[0]"));
         assertEquals(2, IDataHelper.get(document, "recordWithNoID[1]"));
@@ -71,7 +71,7 @@ public class IDataYAMLParserTest {
     public void testDecodeIntegerFromString() throws Exception {
         String yaml = "1";
 
-        IData document = IDataYAMLParser.getInstance().decodeFromString(yaml);
+        IData document = new IDataYAMLParser().parse(yaml);
         assertEquals(1, IDataHelper.get(document, "recordWithNoID"));
     }
 
@@ -88,7 +88,7 @@ public class IDataYAMLParserTest {
         IDataUtil.put(cursor, "jkl", new ObjectWithNoPublicMembers(1, 2));
         cursor.destroy();
 
-        String yaml = IDataYAMLParser.getInstance().encodeToString(document);
+        String yaml = new IDataYAMLParser().emit(document, String.class);
 
         assertTrue(yaml.contains("abc"));
         assertTrue(yaml.contains("123"));

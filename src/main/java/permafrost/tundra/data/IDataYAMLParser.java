@@ -33,15 +33,18 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.error.YAMLException;
 import org.yaml.snakeyaml.nodes.Node;
 import org.yaml.snakeyaml.representer.Represent;
+import permafrost.tundra.io.CloseableHelper;
 import permafrost.tundra.io.InputOutputHelper;
-import permafrost.tundra.io.InputStreamHelper;
 import permafrost.tundra.lang.ArrayHelper;
 import permafrost.tundra.lang.BytesHelper;
 import permafrost.tundra.lang.StringHelper;
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,29 +54,12 @@ import java.util.Map;
 /**
  * Deserializes and serializes IData objects from and to YAML.
  */
-public class IDataYAMLParser extends IDataTextParser {
+public class IDataYAMLParser extends IDataParser {
     /**
-     * Initialization on demand holder idiom.
+     * Default constructor.
      */
-    private static class Holder {
-        /**
-         * The singleton instance of the class.
-         */
-        private static final IDataYAMLParser INSTANCE = new IDataYAMLParser();
-    }
-
-    /**
-     * Disallow instantiation of this class.
-     */
-    private IDataYAMLParser() {}
-
-    /**
-     * Returns the singleton instance of this class.
-     *
-     * @return The singleton instance of this class.
-     */
-    public static IDataYAMLParser getInstance() {
-        return Holder.INSTANCE;
+    public IDataYAMLParser() {
+        super("application/yaml");
     }
 
     /**
@@ -84,8 +70,33 @@ public class IDataYAMLParser extends IDataTextParser {
      * @param charset      The character set to use.
      * @throws IOException If there is a problem writing to the stream.
      */
-    public void encode(OutputStream outputStream, IData document, Charset charset) throws IOException {
-        InputOutputHelper.copy(InputStreamHelper.normalize(encodeToString(document), charset), outputStream);
+    @Override
+    public void emit(OutputStream outputStream, IData document, Charset charset) throws IOException {
+        Writer writer = new BufferedWriter(new OutputStreamWriter(outputStream), InputOutputHelper.DEFAULT_BUFFER_SIZE);
+        IDataCursor cursor = document.getCursor();
+
+        try {
+            DumperOptions options = new DumperOptions();
+            options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+            Yaml parser = new Yaml(new Representer(), options);
+            Object value = IDataUtil.get(cursor, "recordWithNoID");
+
+            Object object;
+            if (value instanceof IData[]) {
+                object = IDataHelper.toList((IData[]) value);
+            } else if (value instanceof Object[]) {
+                object = Arrays.asList((Object[]) value);
+            } else if (value != null) {
+                object = value;
+            } else {
+                object = IDataHelper.toMap(document);
+            }
+
+            parser.dump(object, writer);
+        } finally {
+            CloseableHelper.close(writer);
+            cursor.destroy();
+        }
     }
 
     /**
@@ -96,29 +107,9 @@ public class IDataYAMLParser extends IDataTextParser {
      * @return              An IData representation of the given input stream data.
      * @throws IOException  If there is a problem reading from the stream.
      */
-    public IData decode(InputStream inputStream, Charset charset) throws IOException {
-        return decodeFromString(StringHelper.normalize(inputStream, charset));
-    }
-
-    /**
-     * The MIME media type for YAML.
-     *
-     * @return YAML MIME media type.
-     */
-    public String getContentType() {
-        return "application/yaml";
-    }
-
-    /**
-     * Returns an IData representation of the YAML data.
-     *
-     * @param content       The String to be decoded.
-     * @return              An IData representation of the given data.
-     * @throws IOException  If an I/O problem occurs.
-     */
     @Override
-    public IData decodeFromString(String content) throws IOException {
-        Object value = normalize(new Yaml().load(content));
+    public IData parse(InputStream inputStream, Charset charset) throws IOException {
+        Object value = normalize(new Yaml().load(StringHelper.normalize(inputStream, charset)));
 
         IData output;
 
@@ -154,37 +145,6 @@ public class IDataYAMLParser extends IDataTextParser {
             value = ArrayHelper.normalize(output);
         }
         return value;
-    }
-
-    /**
-     * Returns a YAML representation of the given IData object.
-     *
-     * @param input The IData to convert to YAML.
-     * @return      The YAML representation of the IData.
-     */
-    @Override
-    public String encodeToString(IData input) throws IOException {
-        DumperOptions options = new DumperOptions();
-        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-
-        Yaml parser = new Yaml(new Representer(), options);
-
-        IDataCursor cursor = input.getCursor();
-        Object value = IDataUtil.get(cursor, "recordWithNoID");
-        cursor.destroy();
-
-        Object object;
-        if (value instanceof IData[]) {
-            object = IDataHelper.toList((IData[])value);
-        } else if (value instanceof Object[]) {
-            object = Arrays.asList((Object[])value);
-        } else if (value != null) {
-            object = value;
-        } else {
-            object = IDataHelper.toMap(input);
-        }
-
-        return parser.dump(object);
     }
 
     /**
